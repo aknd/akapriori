@@ -1,9 +1,10 @@
 # coding:utf-8
 
 from collections import defaultdict
+import itertools
 
 
-def apriori(transactions, support=0.01, confidence=0.1, lift=2, minlen=2, maxlen=2):
+def apriori(transactions, support=0.1, confidence=0.8, lift=1, minlen=2, maxlen=2):
     item_2_tranidxs = defaultdict(list)
     itemset_2_tranidxs = defaultdict(list)
 
@@ -17,7 +18,7 @@ def apriori(transactions, support=0.01, confidence=0.1, lift=2, minlen=2, maxlen
         (k, frozenset(v)) for k, v in itemset_2_tranidxs.items()])
 
     tran_count = float(len(transactions))
-    print('Extracting rules in {} transactions...'.format(int(tran_count)))
+    # print('Extracting rules in {} transactions...'.format(int(tran_count)))
 
     valid_items = set(item
         for item, tranidxs in item_2_tranidxs.items()
@@ -52,15 +53,19 @@ def apriori(transactions, support=0.01, confidence=0.1, lift=2, minlen=2, maxlen
     # print('{} frequent patterns found'.format(len(freqsets)))
 
     for freqset in freqsets:
-        # for simplicity, rhs to include only one item
         for item in freqset:
             rhs = frozenset([item])
             lhs = freqset - rhs
             support_rhs = len(itemset_2_tranidxs[rhs]) / tran_count
-            confidence_lhs_rhs = len(itemset_2_tranidxs[freqset]) \
-                / float(len(itemset_2_tranidxs[lhs]))
-            lift_lhs_rhs = confidence_lhs_rhs / support_rhs
+            if len(lhs) == 0:
+                lift_rhs = float(1)
+                if support_rhs >= support and support_rhs > confidence and lift_rhs > lift:
+                    yield (lhs, rhs, support_rhs, support_rhs, lift_rhs)
+            else:
+                confidence_lhs_rhs = len(itemset_2_tranidxs[freqset]) \
+                    / float(len(itemset_2_tranidxs[lhs]))
+                lift_lhs_rhs = confidence_lhs_rhs / support_rhs
 
-            if confidence_lhs_rhs >= confidence and lift_lhs_rhs > lift:
-                support_lhs_rhs = len(itemset_2_tranidxs[freqset]) / tran_count
-                yield (lhs, rhs, support_lhs_rhs, confidence_lhs_rhs, lift_lhs_rhs)
+                if confidence_lhs_rhs >= confidence and lift_lhs_rhs > lift:
+                    support_lhs_rhs = len(itemset_2_tranidxs[freqset]) / tran_count
+                    yield (lhs, rhs, support_lhs_rhs, confidence_lhs_rhs, lift_lhs_rhs)
